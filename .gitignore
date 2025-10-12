@@ -1,0 +1,4 @@
+.env
+venv/
+mynotes.md
+__pycache__/
