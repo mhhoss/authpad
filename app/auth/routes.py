@@ -10,6 +10,16 @@ router = APIRouter()
 
 @router.post("/register")
 async def register_user(user: UserCreate):
+    """
+    Register a new user with email and password.
+
+    Input:
+    - email: must be valid and unique
+    - password: plain text, will be hashed
+
+    returns:
+    exception error or success message to any client
+    """
     conn = await get_conn()
     existing = await conn.fetchrow("SELECT * FROM users WHERE email = $1", user.email)
     # check if the email is already registered
@@ -24,6 +34,16 @@ async def register_user(user: UserCreate):
 
 @router.post("/login")
 async def login_user(user: UserLogin):
+    """
+    log in an existing user and return a JWT token.
+
+    Input:
+    - email: must be registered
+    - password: plain text (no hash)
+
+    Returns:
+    JWT token or credentials valid
+    """
     conn = await get_conn()
     user = conn.fetchrow("SELECT * FROM users WHERE email = $1", user.email)
 
@@ -37,6 +57,9 @@ async def login_user(user: UserLogin):
 # this will be used for user profile, dashboard, and settings
 @router.get("/me", response_model=UserOut)
 async def get_me(email: str = Depends(get_current_user)):
+    """
+    Return the current user's info using a valid JWT token.
+    """
     return {"message": email}
 
 
