@@ -1,28 +1,35 @@
 from fastapi import APIRouter, HTTPException
 from app.db import get_conn
+from authpad.app.core.security import create_access_token
+from authpad.app.utils import verify_pass
+from authpad.app.schemas import UserCreate, UserLogin
 
 
 router = APIRouter()
 
 
 @router.post("/register")
-async def register_user(email: str, password: str):
+async def register_user(user: UserCreate):
     conn = await get_conn()
-    existing = await conn.fetchrow("SELECT * FROM users WHERE email = $1", email)
+    existing = await conn.fetchrow("SELECT * FROM users WHERE email = $1", user.email)
     # check if the email is already registered
+
     if existing:
         raise HTTPException(status_code=400, detail="it's already registered!")
     await conn.execute(
-        "INSERT INTO users (email, hashed_pass) VALUES ($1, $2)", email, password
+        "INSERT INTO users (email, hashed_pass) VALUES ($1, $2)", user.email, user.password
     )
     return {"message": "successfully registered!"}
 
 
+@router.post("/login")
+async def login_user(user: UserLogin):
+    conn = await get_conn()
+    user = conn.fetchrow("SELECT * FROM users WHERE email = $1", user.email)
 
-
-'''هش کردن رمز در /register
-نوشتن /login با JWT
-ساخت middleware برای محافظت از routeها
-تأیید ایمیل
-بازیابی رمز'''
+    if not user or not verify_pass(user.password, user["hashed_pass"]):
+        raise HTTPException(status_code=401, detail="Invalid password or email!")
+    token = create_access_token({"sub": user.email})
+    # 'sub' is the user's unqiue identifier (email)
+    return {"access token": token, "token type": "bearer"}
 
