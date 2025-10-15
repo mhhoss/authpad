@@ -38,3 +38,9 @@ async def login_user(user: UserLogin):
 @router.get("/me", response_model=UserOut)
 async def get_me(email: str = Depends(get_current_user)):
     return {"message": email}
+
+
+# for testing only
+@router.get("/protected")
+async def protected_area(email: str = Depends(get_current_user)):
+    return {"message": f"Hey {email}, you're in a protected area zone!"}
