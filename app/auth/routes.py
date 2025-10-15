@@ -1,8 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from app.db import get_conn
-from authpad.app.core.security import create_access_token
+from authpad.app.core.security import create_access_token, get_current_user
 from authpad.app.utils import verify_pass
-from authpad.app.schemas import UserCreate, UserLogin
+from authpad.app.schemas import UserCreate, UserLogin, UserOut
 
 
 router = APIRouter()
@@ -33,3 +33,8 @@ async def login_user(user: UserLogin):
     # 'sub' is the user's unqiue identifier (email)
     return {"access token": token, "token type": "bearer"}
 
+
+# this will be used for user profile, dashboard, and settings
+@router.get("/me", response_model=UserOut)
+async def get_me(email: str = Depends(get_current_user)):
+    return {"message": email}
