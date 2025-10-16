@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.db import get_conn
 from authpad.app.core.security import create_access_token, get_current_user
-from authpad.app.utils import verify_pass
-from authpad.app.schemas import UserCreate, UserLogin, UserOut
+from authpad.app.utils import hash_pass, verify_pass
+from authpad.app.schemas import TokenOut, UserCreate, UserLogin, UserOut
 
 
 router = APIRouter()
 
 
-@router.post("/register")
+@router.post("/register", response_model=UserOut)
 async def register_user(user: UserCreate):
     """
     Register a new user with email and password.
@@ -26,13 +26,15 @@ async def register_user(user: UserCreate):
 
     if existing:
         raise HTTPException(status_code=400, detail="it's already registered!")
+    
+    hashed = hash_pass(user.password)
     await conn.execute(
-        "INSERT INTO users (email, hashed_pass) VALUES ($1, $2)", user.email, user.password
+        "INSERT INTO users (email, hashed_pass) VALUES ($1, $2)", user.email, hashed
     )
-    return {"message": "successfully registered!"}
+    return UserOut(email=user.email)
 
 
-@router.post("/login")
+@router.post("/login", response_model=UserOut)
 async def login_user(user: UserLogin):
     """
     log in an existing user and return a JWT token.
@@ -45,25 +47,25 @@ async def login_user(user: UserLogin):
     JWT token or credentials valid
     """
     conn = await get_conn()
-    user = conn.fetchrow("SELECT * FROM users WHERE email = $1", user.email)
+    user = await conn.fetchrow("SELECT * FROM users WHERE email = $1", user.email)
 
     if not user or not verify_pass(user.password, user["hashed_pass"]):
         raise HTTPException(status_code=401, detail="Invalid password or email!")
-    token = create_access_token({"sub": user.email})
+    token = create_access_token({"sub": user["email"]})
     # 'sub' is the user's unqiue identifier (email)
-    return {"access token": token, "token type": "bearer"}
+    return TokenOut(access_token=token, user=user["email"])
 
 
 # this will be used for user profile, dashboard, and settings
 @router.get("/me", response_model=UserOut)
-async def get_me(email: str = Depends(get_current_user)):
+async def get_me(email: str = Depends(get_current_user)):  # registered user only
     """
     Return the current user's info using a valid JWT token.
     """
-    return {"message": email}
+    return UserOut(email=email)
 
 
 # for testing only
 @router.get("/protected")
 async def protected_area(email: str = Depends(get_current_user)):
-    return {"message": f"Hey {email}, you're in a protected area zone!"}
+    return UserOut(email=email)
