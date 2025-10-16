@@ -1,15 +1,16 @@
+import asyncpg
 from fastapi import APIRouter, Depends, HTTPException
-from app.db import get_conn
-from authpad.app.core.security import create_access_token, get_current_user
-from authpad.app.utils import hash_pass, verify_pass
-from authpad.app.schemas import TokenOut, UserCreate, UserLogin, UserOut
+from app.db.db import get_db
+from app.core.security import create_access_token, get_current_user
+from app.utils.crypto import hash_pass, verify_pass
+from app.schemas.schemas import TokenOut, UserCreate, UserLogin, UserOut
 
 
 router = APIRouter()
 
 
 @router.post("/register", response_model=UserOut)
-async def register_user(user: UserCreate):
+async def register_user(user: UserCreate, db: asyncpg.Connection = Depends(get_db)):
     """
     Register a new user with email and password.
 
@@ -20,22 +21,21 @@ async def register_user(user: UserCreate):
     returns:
     exception error or success message to any client
     """
-    conn = await get_conn()
-    existing = await conn.fetchrow("SELECT * FROM users WHERE email = $1", user.email)
+    existing = await db.fetchrow("SELECT * FROM users WHERE email = $1", user.email)
     # check if the email is already registered
 
     if existing:
         raise HTTPException(status_code=400, detail="it's already registered!")
     
     hashed = hash_pass(user.password)
-    await conn.execute(
+    await db.execute(
         "INSERT INTO users (email, hashed_pass) VALUES ($1, $2)", user.email, hashed
     )
     return UserOut(email=user.email)
 
 
 @router.post("/login", response_model=UserOut)
-async def login_user(user: UserLogin):
+async def login_user(user: UserLogin, db: asyncpg.Connection = Depends(get_db)):
     """
     log in an existing user and return a JWT token.
 
@@ -46,23 +46,14 @@ async def login_user(user: UserLogin):
     Returns:
     JWT token or credentials valid
     """
-    conn = await get_conn()
-    user = await conn.fetchrow("SELECT * FROM users WHERE email = $1", user.email)
+    db_user = await db.fetchrow("SELECT * FROM users WHERE email = $1", user.email)
 
-    if not user or not verify_pass(user.password, user["hashed_pass"]):
+    if not db_user or not verify_pass(user.password, db_user["hashed_pass"]):
         raise HTTPException(status_code=401, detail="Invalid password or email!")
-    token = create_access_token({"sub": user["email"]})
+
+    token = create_access_token({"sub": db_user["email"]})
     # 'sub' is the user's unqiue identifier (email)
-    return TokenOut(access_token=token, user=user["email"])
-
-
-# this will be used for user profile, dashboard, and settings
-@router.get("/me", response_model=UserOut)
-async def get_me(email: str = Depends(get_current_user)):  # registered user only
-    """
-    Return the current user's info using a valid JWT token.
-    """
-    return UserOut(email=email)
+    return TokenOut(access_token=token, user=db_user["email"])
 
 
 # for testing only
