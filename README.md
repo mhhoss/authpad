@@ -4,27 +4,29 @@
 
 # AuthPad 🔐
 
-> **AuthPad** is built with FastAPI to simplify secure user management in modern web apps.
+**AuthPad** is built with FastAPI to simplify secure user management in modern web apps.
 
+> 🖇️AuthPad isn’t just a project — it’s my learning playground, and my commitment to building things the right way, even while I’m still learning.
 
 ---
 
 ## ✅ Features
-- User registeration with password hashing
+- User registration with password hashing
 - JWT-based login routes
 - `/me` endpoint to fetch current user info
 - Modular route structure with docstrings
 - Pydantic-based input validation
-
-> “Security is not a feature — it's a foundation.”
+- async db connection via `asyncpg`
 
 
 ## 🧪 Soon...
 - Refresh tokens
+- User account routes: update profile, change password, delete account
+- Admin-only: `/users/{id}`
 - Role-based access control (RBAC)
-- Rate limiting
-- API documetation with examples
-- Test coverage and CI setup (w/ pytest & github action)
+- Rate limiting *
+- API docs with real-world examples
+- Test coverage and CI setup (w/ pytest & Github Action)
 
 
 ## 🛠️ Tech Stack
@@ -33,7 +35,7 @@
 - Pydantic
 - Python-Jose
 - Passlib
-- PostgreSQL (planned)
+- PostgreSQL (via `asyncpg` and dependency injection)
 
 
 ## 📦 Usage
