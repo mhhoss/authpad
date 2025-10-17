@@ -29,9 +29,9 @@ async def register_user(user: UserCreate, db: asyncpg.Connection = Depends(get_d
     
     hashed = hash_pass(user.password)
     await db.execute(
-        "INSERT INTO users (email, hashed_pass) VALUES ($1, $2)", user.email, hashed
+        "INSERT INTO users (email, username, hashed_pass) VALUES ($1, $2, $3)", user.email, user.username, hashed
     )
-    return UserOut(email=user.email)
+    return UserOut(email=user.email, username=user.username)
 
 
 @router.post("/login", response_model=UserOut)
