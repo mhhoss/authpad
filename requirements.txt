@@ -3,3 +3,6 @@ uvicorn
 pydentic
 
 asyncpg
+passlib
+python-jose
+python-dotenv
