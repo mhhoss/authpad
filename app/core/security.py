@@ -17,15 +17,17 @@ if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY not set in (.env) file")
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 
 
-def create_access_token(data: dict, expires_delta: timedelta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)) -> str:
-    # make a jwt token with user info and expiration (default: 30min)
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+    # make a jwt token with user info and expiration (default: 60min)
+    
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + (expires_delta)
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)) # محاسبه انقضا توکن
     to_encode.update({"exp": expire, "jti": str(uuid.uuid4())})  # برای ردیابی توکن ها
     
     token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
