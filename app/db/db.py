@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 
 load_dotenv()
-DB_URL = os.getenv("DB_URL", "postgresql://postgres:myPG%40mhhoss01@localhost/auth_db")
+DB_URL = os.getenv("DB_URL")
 
 
 # برای نگهداری اتصال های پایگاه داده به صورت استخر برای جلوگیری از کانکت های متداول
