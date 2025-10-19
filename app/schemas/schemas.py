@@ -1,26 +1,29 @@
 from datetime import datetime
-from pydantic import BaseModel, EmailStr
+from uuid import UUID
+from pydantic import BaseModel, EmailStr, Field
 
 
-# دریافت اطلاعات ثبت نام و 
+# دریافت اطلاعات ثبت نام
 class UserCreate(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(..., min_length=8, max_length=72)
 
 
 class UserRead(BaseModel):
-    id: str
+    id: UUID
     email: EmailStr
     is_verified: bool
     created_at: datetime | None = None
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
 
 
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    expires_in: int | None = None
 
 
 class TokenData(BaseModel):
