@@ -1,8 +1,10 @@
 fastapi
 uvicorn
-pydentic
 
+pydentic[email]
 asyncpg
-passlib
+
+passlib[bcrypt]
 python-jose
 python-dotenv
+python-multipart
