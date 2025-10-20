@@ -8,6 +8,7 @@ MIN_PASSWORD_CHARS = 8
 
 
 def hash_pass(password: str) -> str:
+    password = password.strip()
     byte_length = len(password.encode("utf-8"))
     char_length = len(password)
 
