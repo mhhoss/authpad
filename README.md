@@ -11,22 +11,24 @@
 ---
 
 ## ✅ Features
-- User registration with password hashing
-- JWT-based login routes
+- User registration with hashed passwords (`passlib[bcrypt]`)
+- JWT-based token routes
 - `/me` endpoint to fetch current user info
 - Modular route structure with docstrings
-- Pydantic-based input validation
+- Pydantic-based input validation (`UserCreate`, `UserRead`, etc.)
 - async db connection via `asyncpg`
+- Custom error handling and HTTPException messages
 
 
-## 🧪 Soon...
-- Refresh tokens
+## 🚧 Roadmap
+- Refresh tokens support
 - User account routes: update profile, change password, delete account
-- Admin-only: `/users/{id}`
+- Admin-only access to `/users/{id}`
 - Role-based access control (RBAC)
 - Rate limiting *
 - API docs with real-world examples
 - Test coverage and CI setup (w/ pytest & Github Action)
+- Docker support for local dev and deployment
 
 
 ## 🛠️ Tech Stack
@@ -34,7 +36,7 @@
 - Uvicorn
 - Pydantic
 - Python-Jose
-- Passlib
+- Passlib[bcrypt]
 - PostgreSQL (via `asyncpg` and dependency injection)
 
 
