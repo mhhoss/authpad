@@ -1,6 +1,5 @@
 .env
 venv/
-mynotes.md
+docs/mynotes.md
 __pycache__/
-docs/
 .pytest_cache/
