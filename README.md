@@ -4,13 +4,15 @@
 
 # AuthPad 🔐
 
-**AuthPad** is built with FastAPI to simplify secure user management in modern web apps.
+**AuthPad** is built with FastAPI to provide secure, testable, and scalable user management for modern web apps.
+
+## 👨‍💻 Why I Built AuthPad
 
 > 🖇️AuthPad isn’t just a project — it’s my learning playground, and my commitment to building things the right way, even while I’m still learning.
 
 ---
 
-## ✅ Features
+## ✅ Current Features
 - User registration with hashed passwords (`passlib[bcrypt]`)
 - JWT-based token routes
 - `/me` endpoint to fetch current user info
@@ -38,9 +40,17 @@
 - Python-Jose
 - Passlib[bcrypt]
 - PostgreSQL (via `asyncpg` and dependency injection)
+- pytest
 
 
 ## 📦 Usage
 Run locally:
-```bash
-uvicorn app.main:app --reload
+
+    ```bash
+    uvicorn app.main:app --reload
+
+Run **quickly**:
+
+    ```bash
+    chmod +x setup.sh
+    ./setup.sh
