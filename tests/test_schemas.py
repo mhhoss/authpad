@@ -3,6 +3,18 @@ import pytest
 from app.schemas.schemas import UserCreate
 
 
+def test_user_create_schema_valid():
+    data = {
+        "email": "user@email.com",
+        "password": "nJgTf66Frnkl"
+    }
+    schema = UserCreate(**data)
+
+    assert schema.email == "user@email.com"
+    assert schema.password == "nJgTf66Frnkl"
+    assert isinstance(schema, UserCreate)
+
+
 def test_short_password_rejected():  # less than 8 chars
     with pytest.raises(ValidationError):
         UserCreate(email= "mahdi@gmail.com", password= "021")
