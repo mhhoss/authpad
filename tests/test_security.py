@@ -32,9 +32,19 @@ def test_token_missing_sub():
     data = {}  # بدون sub
     token = create_access_token(data=data)
 
-    decoded = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    assert isinstance(token, str)
 
+    decoded = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     assert "sub" not in decoded
+
+
+def test_token_missing_exp():
+    data = {"sub": "user@gmail.com"}
+    token = jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)  # بدون exp -> فقط sub (data) داده شده
+    assert isinstance(token, str)
+
+    decoded = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    assert "exp" not in decoded
 
 
 def test_expired_token_should_fail():
@@ -56,3 +66,18 @@ def test_decode_with_wrong_algorithm_and_secret():
 
     with pytest.raises(JWTError):
         jwt.decode(token, "wrong-secret", algorithms=[ALGORITHM])
+
+
+def test_decode_invalid_token():
+    broken_token = "asd.fgh.jkl"
+
+    with pytest.raises(JWTError):
+        jwt.decode(broken_token, SECRET_KEY, algorithms=[ALGORITHM])
+
+
+def test_token_with_large_payload():
+    data = {"sub": "user@gmail.com", "meta": "x" * 1000}
+    token = create_access_token(data=data)
+
+    decoded = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    assert decoded["meta"] == "x" * 1000
