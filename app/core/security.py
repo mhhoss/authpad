@@ -46,8 +46,6 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     
-    conn: asyncpg.Connection = Depends(get_conn)
-
     # get the token from request and decode it to get user email
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -68,5 +66,5 @@ async def get_current_user(
     if row is None or not row.get("is_verified", False):
         raise credentials_exception
 
-    return row
+    return dict(row)
 
