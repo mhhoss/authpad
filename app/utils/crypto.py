@@ -8,7 +8,14 @@ MIN_PASSWORD_CHARS = 8
 
 
 def hash_pass(password: str) -> str:
+    if not isinstance(password, str):
+        raise ValueError("Password must be a string")
     password = password.strip()
+    if not password:
+        raise ValueError("Password cannot be empty")
+    if len(password.encode("utf-8")) > 72:
+        raise ValueError("Password must be at most 72 bytes")
+
     byte_length = len(password.encode("utf-8"))
     char_length = len(password)
 
