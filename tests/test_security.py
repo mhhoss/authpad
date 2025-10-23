@@ -81,3 +81,32 @@ def test_token_with_large_payload():
 
     decoded = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     assert decoded["meta"] == "x" * 1000
+
+
+def test_create_access_token_sets_default_exp():
+    token = create_access_token(data={"sub": "test0011"})
+    payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+
+    assert "exp" in payload
+
+
+def test_jti_is_unique():
+    first_token = create_access_token(data={"sub": "test0011"})
+    second_token = create_access_token(data={"sub": "test0011"})
+    
+    payload1 = jwt.decode(first_token, SECRET_KEY, algorithms=[ALGORITHM])
+    payload2 = jwt.decode(second_token, SECRET_KEY, algorithms=[ALGORITHM])
+
+    assert payload1["jti"] != payload2["jti"]
+
+
+def test_token_with_none_algorithm():
+    import base64
+
+    header = base64.urlsafe_b64encode(b'{"alg":"none","typ":"JWT"}').rstrip(b"=").decode()
+    payload = base64.urlsafe_b64encode(b'{"sub":"user123"}').rstrip(b"=").decode()
+    token = f"{header}.{payload}."  # بدون امضا
+
+    with pytest.raises(jwt.JWTError):
+        jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    
