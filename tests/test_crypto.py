@@ -30,12 +30,11 @@ def test_password_rejections():
         hash_pass(long_pass)
 
 
-def test_verify_trims():  # to 72 bytes
+def test_hash_pass_rejects_long_pass():  # limit: 72 bytes
     password = "a" * 100
-    trimmed = password.encode("utf-8")[:72].decode("utf-8", errors="ignore")
-    hashed = hash_pass(trimmed)
-
-    assert verify_pass(trimmed, hashed)
+    with pytest.raises(ValueError) as exc:
+        hash_pass(password)
+    assert "72" in str(exc.value)
 
 
 def test_special_chars_password():
@@ -45,3 +44,11 @@ def test_special_chars_password():
 
     wrong_password = "!@#$_-+=[]{}|:;<>?/\\\"'`~^&*("  # one char removed
     assert not verify_pass(wrong_password, hashed)
+
+
+@pytest.mark.parametrize("bad_input", ["", None])
+def test_hash_pass_rejects_bad_input(bad_input):
+    with pytest.raises(ValueError) as exc:
+        hash_pass(bad_input)
+
+    assert "password" in str(exc.value).lower()
