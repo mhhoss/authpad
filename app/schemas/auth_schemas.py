@@ -4,7 +4,7 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 # دریافت اطلاعات ثبت نام
-class UserCreate(BaseModel):
+class UserRegistration(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8, max_length=72)
 
@@ -26,7 +26,7 @@ class UserCreate(BaseModel):
     }
 
 
-class UserRead(BaseModel):
+class UserOut(BaseModel):
     id: UUID
     email: EmailStr
     is_verified: bool
@@ -37,11 +37,7 @@ class UserRead(BaseModel):
     }
 
 
-class Token(BaseModel):
+class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int | None = None
-
-
-class TokenData(BaseModel):
-    email: EmailStr | None = None
