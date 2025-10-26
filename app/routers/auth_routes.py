@@ -2,17 +2,17 @@ from datetime import timedelta
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from app.db.db import get_conn
+from app.db.connection import get_conn
 from app.core.security import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, get_current_user
-from app.utils.crypto import hash_pass, verify_pass
-from app.schemas.schemas import TokenData, UserCreate, UserRead, Token
+from app.services.password import hash_pass, verify_pass
+from app.schemas.auth_schemas import TokenResponse, UserOut, UserRegistration
 
 
 router = APIRouter()
 
 
-@router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
-async def register_user(user: UserCreate, conn: asyncpg.Connection = Depends(get_conn)):
+@router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+async def register_user(user: UserRegistration, conn: asyncpg.Connection = Depends(get_conn)):
     """
     Register a new user with email and password.
 
@@ -31,7 +31,7 @@ async def register_user(user: UserCreate, conn: asyncpg.Connection = Depends(get
     hashed_password = hash_pass(user.password)
 
     # ایجاد رکورد و خواندن اطلاعات و سپس برگرداندن آن
-    row = await conn.fetchrow(
+    user_row = await conn.fetchrow(
         """
         INSERT INTO users (email, hashed_pass, is_verified) VALUES ($1, $2, $3)
         RETURNING id, email, is_verified, created_at
@@ -39,14 +39,14 @@ async def register_user(user: UserCreate, conn: asyncpg.Connection = Depends(get
         user.email, hashed_password, True
     )
 
-    if not row:
+    if not user_row:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User registration failed")
 
-    return UserRead(**row)
+    return UserOut(**user_row)
 
 
 
-@router.post("/token", response_model=Token)
+@router.post("/token", response_model=TokenResponse)
 async def token(
     form_data: OAuth2PasswordRequestForm = Depends(), 
     conn: asyncpg.Connection = Depends(get_conn)
@@ -63,13 +63,13 @@ async def token(
     """
 
     # گرفتن اطلاعات کاربر از دیتابیس
-    row = await conn.fetchrow(
+    user_row = await conn.fetchrow(
         "SELECT id, email, hashed_pass, is_verified FROM users WHERE email = $1",
         form_data.username
     )
 
     # اعتبارسنجی رمز عبور
-    if not row or not verify_pass(form_data.password, row["hashed_pass"]):
+    if not user_row or not verify_pass(form_data.password, user_row["hashed_pass"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password"
@@ -77,11 +77,11 @@ async def token(
 
     # ساخت توکن JWT
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    token = create_access_token({"sub": row["email"]}, expires_delta=access_token_expires)
+    token = create_access_token({"sub": user_row["email"]}, expires_delta=access_token_expires)
 
     return {"access_token": token, "token_type": "bearer", "expires_in": int(access_token_expires.total_seconds())}
 
-# for testing only
+
 @router.get("/protected")
-async def protected_area(user: UserRead = Depends(get_current_user)):
-    return UserRead(user)
+async def protected_area(user: UserOut = Depends(get_current_user)):
+    return UserOut(user)
