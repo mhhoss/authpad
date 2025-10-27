@@ -1,0 +1,49 @@
+import asyncpg
+from fastapi import Depends, HTTPException, status
+from jose import JWTError
+from fastapi.security import OAuth2PasswordBearer
+
+from app.core.security import jwt, verify_token
+from app.core.security import ALGORITHM, SECRET_KEY
+from app.core.config import settings
+from app.db.connection import get_conn
+
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
+
+
+
+async def get_current_user(
+        token: str = Depends(oauth2_scheme),
+        conn: asyncpg.Connection = Depends(get_conn)
+        ) -> asyncpg.Record:
+
+    # standard error for unregistered user
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    # get the token from request and decode it to get user email
+    try:
+        payload = verify_token(token, settings.SECRET_KEY)
+        email = payload.get("sub")
+        if not email:
+            raise credentials_exception
+    
+    except JWTError:
+        raise credentials_exception
+    
+    query = """
+        SELECT id, email, username, hashed_pass, is_verified, created_at, last_login
+        FROM users
+        WHERE email = $1
+    """
+
+    row = await conn.fetchrow(query, email)
+
+    if row is None or not row.get("is_verified", False):
+        raise credentials_exception
+
+    return dict(row)
