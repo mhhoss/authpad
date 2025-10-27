@@ -1,10 +1,8 @@
 import asyncpg
 from fastapi import Depends, HTTPException, status
-from jose import JWTError
 from fastapi.security import OAuth2PasswordBearer
 
-from app.core.security import jwt, verify_token
-from app.core.security import ALGORITHM, SECRET_KEY
+from app.core.security import verify_token
 from app.core.config import settings
 from app.db.connection import get_conn
 
@@ -16,7 +14,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 async def get_current_user(
         token: str = Depends(oauth2_scheme),
         conn: asyncpg.Connection = Depends(get_conn)
-        ) -> asyncpg.Record:
+        ) -> dict:
 
     # standard error for unregistered user
     credentials_exception = HTTPException(
@@ -32,7 +30,7 @@ async def get_current_user(
         if not email:
             raise credentials_exception
     
-    except JWTError:
+    except ValueError:
         raise credentials_exception
     
     query = """
