@@ -2,8 +2,9 @@ from datetime import timedelta
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+
 from app.db.connection import get_conn
-from app.core.security import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, get_current_user
+from app.core.security import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token
 from app.auth.services.password import hash_pass, verify_pass
 from app.auth.schemas import RegisterRequest, TokenResponse
 from app.user.schemas import UserOut
@@ -31,7 +32,6 @@ async def register_user(user: RegisterRequest, conn: asyncpg.Connection = Depend
 
     hashed_password = hash_pass(user.password)
 
-    # ایجاد رکورد و خواندن اطلاعات و سپس برگرداندن آن
     user_row = await conn.fetchrow(
         """
         INSERT INTO users (email, hashed_pass, is_verified) VALUES ($1, $2, $3)
@@ -63,26 +63,23 @@ async def token(
     JWT token or credentials valid
     """
 
-    # گرفتن اطلاعات کاربر از دیتابیس
+    # get the user data from the database
     user_row = await conn.fetchrow(
         "SELECT id, email, hashed_pass, is_verified FROM users WHERE email = $1",
         form_data.username
     )
 
-    # اعتبارسنجی رمز عبور
+    # password validation
     if not user_row or not verify_pass(form_data.password, user_row["hashed_pass"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password"
         )
 
-    # ساخت توکن JWT
+    # make JWT token
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     token = create_access_token({"sub": user_row["email"]}, expires_delta=access_token_expires)
 
     return {"access_token": token, "token_type": "bearer", "expires_in": int(access_token_expires.total_seconds())}
 
 
-@router.get("/protected")
-async def protected_area(user: UserOut = Depends(get_current_user)):
-    return UserOut(user)
