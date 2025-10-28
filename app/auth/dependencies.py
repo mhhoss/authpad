@@ -15,6 +15,9 @@ async def get_current_user(
         token: str = Depends(oauth2_scheme),
         conn: asyncpg.Connection = Depends(get_conn)
         ) -> dict:
+    '''
+    validates the access token and retrieves uer information from the database
+    '''
 
     # standard error for unregistered user
     credentials_exception = HTTPException(
