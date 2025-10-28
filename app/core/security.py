@@ -25,6 +25,9 @@ def create_access_token(
         ) -> str:
     '''create JWT access token'''
     
+    if "sub" not in data:
+        raise ValueError("Token data must contain 'sub' claim")
+
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (
         expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -36,7 +39,7 @@ def create_access_token(
         "iat": datetime.now(timezone.utc)
         })
     
-    token = jwt.encode(to_encode, secret_key, algorithms=[algorithm])
+    token = jwt.encode(to_encode, secret_key, algorithm=algorithm)
     return token
 
 
