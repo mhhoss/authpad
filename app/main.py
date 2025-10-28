@@ -1,8 +1,7 @@
-from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from app.routers.auth_routes import router as auth_router
-from app.routers.user_routes import router as user_router
-from app.db.db import init_pool, close_pool
+from app.auth.routes import router as auth_router
+from app.user.routes import router as user_router
+from app.db.connection import init_pool, close_pool
 from contextlib import asynccontextmanager
 
 
