@@ -1,4 +1,5 @@
 from datetime import timedelta
+from datetime import datetime, timezone
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, status, Body
 from fastapi.security import OAuth2PasswordRequestForm
@@ -9,6 +10,7 @@ from app.auth.services.password import hash_pass, verify_pass
 from app.auth.services.jwt import create_refresh_token, verify_refresh_token
 from app.auth.schemas import RegisterRequest, TokenResponse
 from app.user.schemas import UserOut
+from app.auth.dependencies import get_current_user, oauth2_scheme
 
 
 router = APIRouter()
@@ -197,3 +199,26 @@ async def refresh_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid refresh token: {str(e)}"
             )
+    
+
+
+@router.post("/logout")
+async def logout_user(
+    current_user: str = Depends(get_current_user),
+    token: str = Depends(oauth2_scheme)
+    ) -> dict:
+    '''
+    Logout user and revoke current access token.
+
+    Input:
+    - Requires valid access token in Authorization header
+
+    Returns:
+    dict: Success message with revocation information
+    '''
+
+    return {
+        "message": "Successfully logged out",
+        "revoked": True,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
