@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
-from fastapi import status
 from app.core.config import settings
 
 
