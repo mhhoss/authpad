@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
-# دریافت اطلاعات ثبت نام
+# User registration input validation
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8, max_length=72)
@@ -24,12 +24,9 @@ class RegisterRequest(BaseModel):
     }
 
 
+# Authentication token response
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: str | None = None
     token_type: str = "bearer"
     expires_in: int | None = None
-
-
-# loginrequest
-# passwordresetrequest
-# OTPVerifyRequest
