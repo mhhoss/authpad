@@ -1,5 +1,5 @@
 import pytest
-from app.utils.crypto import hash_pass, verify_pass
+from app.auth.services.password import hash_pass, verify_pass
 
 
 def test_hash_and_verify():
