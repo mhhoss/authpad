@@ -1,6 +1,7 @@
 import uuid
 from jose import JWTError, jwt
 from datetime import timedelta, datetime, timezone
+from app.core.config import settings
 import os
 from dotenv import load_dotenv
 
@@ -19,8 +20,8 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60")
 
 def create_access_token(
         data: dict,
-        secret_key: str = SECRET_KEY,
-        algorithm: str = ALGORITHM,
+        secret_key: str = settings.SECRET_KEY,
+        algorithm: str = settings.ALGORITHM,
         expires_delta: timedelta | None = None
         ) -> str:
     '''create JWT access token'''
@@ -46,8 +47,8 @@ def create_access_token(
 
 def verify_token(
         token: str,
-        secret_key: str = SECRET_KEY,
-        algorithm: str = ALGORITHM
+        secret_key: str = settings.SECRET_KEY,
+        algorithm: str = settings.ALGORITHM
         ) -> dict:
     '''verify and decode JWT token'''
 
