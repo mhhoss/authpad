@@ -6,7 +6,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from app.db.connection import get_conn
 from app.core.security import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token
-from app.auth.services.password import hash_pass, verify_pass
+from app.auth.services.password import hash_password, verify_password
 from app.auth.services.jwt import create_refresh_token, verify_refresh_token
 from app.auth.schemas import RegisterRequest, TokenResponse
 from app.user.schemas import UserOut
@@ -44,21 +44,22 @@ async def register_user(
             detail="Email already registered!"
             )
 
-    hashed_password = hash_pass(user.password)
+    password_hash = hash_password(user.password)
 
     user_row = await conn.fetchrow(
         """
-        INSERT INTO users (email, hashed_pass, is_verified) VALUES ($1, $2, $3)
-        RETURNING id, email, is_verified, created_at
+        INSERT INTO users (email, password_hash)
+        VALUES ($1, $2)
+        RETURNING id, email, is_verified, is_active, created_at
         """,
-        user.email, hashed_password, True
+        user.email, password_hash
     )
 
     if not user_row:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="User registration failed"
-            )
+            detail="User Registeration failed"
+        )
 
     return UserOut(**user_row)
 
@@ -89,12 +90,16 @@ async def token(
 
     # Get user from database
     user_row = await conn.fetchrow(
-        "SELECT id, email, hashed_pass, is_verified FROM users WHERE email = $1",
+        """
+        SELECT id, email, password_hash, is_verified, is_active,
+        failed_login_attempts, locked_until
+        FROM users WHERE email = $1
+        """,
         form_data.username
     )
 
     # Validate credentials
-    if not user_row or not verify_pass(form_data.password, user_row["hashed_pass"]):
+    if not user_row or not verify_password(form_data.password, user_row["password_hash"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -106,6 +111,13 @@ async def token(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Please verify your email address before logging in"
+        )
+    
+    # Check if user is active
+    if not user_row["is_active"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is deactivated"
         )
 
     # Create access token
@@ -157,8 +169,8 @@ async def refresh_token(
         # Check if user exists
         user_row = await conn.fetchrow(
             """
-            SELECT email, is_verified 
-            FROM users 
+            SELECT email, is_verified, is_active
+            FROM users
             WHERE email = $1
             """,
             user_email
@@ -175,6 +187,13 @@ async def refresh_token(
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Please verify your email first"
+            )
+        
+        # Check if user is active
+        if not user_row["is_active"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Account is deactivated"
             )
         
         # Create new access token
