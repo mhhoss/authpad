@@ -7,7 +7,7 @@ MAX_PASSWORD_BYTES = 72
 MIN_PASSWORD_CHARS = 8
 
 
-def hash_pass(password: str) -> str:
+def hash_password(password: str) -> str:
     if not isinstance(password, str):
         raise ValueError("Password must be a string")
     password = password.strip()
@@ -26,6 +26,6 @@ def hash_pass(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def verify_pass(plain: str, hashed_password: str) -> bool:
+def verify_password(plain: str, password_hash: str) -> bool:
     trimmed = plain.encode("utf-8")[:MAX_PASSWORD_BYTES].decode("utf-8", errors="ignore")
-    return pwd_context.verify(trimmed, hashed_password)
+    return pwd_context.verify(trimmed, password_hash)
