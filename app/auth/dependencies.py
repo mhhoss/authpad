@@ -37,14 +37,16 @@ async def get_current_user(
         raise credentials_exception
     
     query = """
-        SELECT id, email, username, hashed_pass, is_verified, created_at, last_login
+        SELECT id, email, username, password_hash,
+        is_verified, is_active, is_superuser,
+        created_at, last_login, email_verified_at
         FROM users
         WHERE email = $1
     """
 
-    row = await conn.fetchrow(query, email)
+    user_row = await conn.fetchrow(query, email)
 
-    if row is None or not row.get("is_verified", False):
+    if user_row is None or not user_row["is_verified"] or not user_row["is_active"]:
         raise credentials_exception
 
-    return dict(row)
+    return dict(user_row)
