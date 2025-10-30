@@ -223,21 +223,19 @@ async def refresh_token(
 
 @router.post("/logout")
 async def logout_user(
-    current_user: str = Depends(get_current_user),
-    token: str = Depends(oauth2_scheme)
+    current_user: dict = Depends(get_current_user),
     ) -> dict:
     '''
-    Logout user and revoke current access token.
+    Logout authenticated user.
 
     Input:
-    - Requires valid access token in Authorization header
+    - Requires valid JWT access token
 
     Returns:
-    dict: Success message with revocation information
+    - Logout confirmation with timestamp
     '''
 
     return {
         "message": "Successfully logged out",
-        "revoked": True,
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
