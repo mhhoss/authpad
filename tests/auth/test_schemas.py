@@ -2,7 +2,8 @@ from datetime import datetime, timezone
 from uuid import uuid4
 from pydantic import ValidationError
 import pytest
-from app.schemas.schemas import UserCreate, UserRead, Token
+from app.auth.schemas import RegisterRequest, TokenResponse
+from app.user.schemas import UserOut
 
 
 def test_user_create_schema_valid():
@@ -10,33 +11,33 @@ def test_user_create_schema_valid():
         "email": "user@email.com",
         "password": "nJgTf66Frnkl"
     }
-    schema = UserCreate(**data)
+    schema = RegisterRequest(**data)
 
     assert schema.email == "user@email.com"
     assert schema.password == "nJgTf66Frnkl"
-    assert isinstance(schema, UserCreate)
+    assert isinstance(schema, RegisterRequest)
 
 
 def test_short_password_rejected():  # less than 8 chars
     with pytest.raises(ValidationError):
-        UserCreate(email= "mahdi@gmail.com", password= "021")
+        RegisterRequest(email= "mahdi@gmail.com", password= "021")
 
 
 def test_long_password_rejected():  # more than 72 chars
     long_pass = "abc" * 30
     with pytest.raises(ValidationError):
-        UserCreate(email= "mahdi@gmail.com", password=long_pass)
+        RegisterRequest(email= "mahdi@gmail.com", password=long_pass)
 
 
 def test_password_with_spaces():
     password= "  123abcde  "
-    user= UserCreate(email= "mahdi@gmail.com", password=password)
+    user= RegisterRequest(email= "mahdi@gmail.com", password=password)
     assert user.password == password.strip()
 
 
 def test_invalid_email_rejected():
     with pytest.raises(ValidationError):
-        UserCreate(email= "justtext", password= "validpass0101")
+        RegisterRequest(email= "justtext", password= "validpass0101")
 
 
 def test_email_normalization():
@@ -47,7 +48,7 @@ def test_email_normalization():
 
 def test_extra_input():
     with pytest.raises(ValidationError):
-        UserCreate(
+        RegisterRequest(
         email="asfghkd@gmail.com",
         password="HimT3gJn%k",
         is_active=True  # extra field
@@ -55,7 +56,7 @@ def test_extra_input():
         
 
 def test_created_at_defaults_to_none():
-    user = UserRead(
+    user = UserOut(
         id=uuid4(),
         email="test@example.com",
         is_verified=False
@@ -65,7 +66,7 @@ def test_created_at_defaults_to_none():
 
 
 def test_expires_in_defaults_to_none():
-    user = Token(
+    user = TokenResponse(
         access_token="nJGmk850n",
         token_type="bearer"
     )
@@ -73,8 +74,8 @@ def test_expires_in_defaults_to_none():
     assert user.expires_in is None
 
 
-def test_userread_output_has_only_allowed_fields():
-    user = UserRead(
+def test_userout_output_has_only_allowed_fields():
+    user = UserOut(
         id=uuid4(),
         email="test@gmail.com",
         is_verified=True,
@@ -86,11 +87,12 @@ def test_userread_output_has_only_allowed_fields():
 
 
 def test_token_output_has_only_allowed_fields():
-    user = Token(
+    user = TokenResponse(
         access_token="jBgi8JhImG&np",
         token_type="bearer",
+        refresh_token="refresh_token",
         expires_in=3600
     )
 
     output = user.model_dump()
-    assert set(output.keys()) == {"access_token", "token_type", "expires_in"}
+    assert set(output.keys()) == {"access_token", "token_type","refresh_token" , "expires_in"}
