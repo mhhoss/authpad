@@ -1,15 +1,46 @@
-import os
+from pydantic import ConfigDict
+from pydantic_settings import BaseSettings
 
 
-class Settings:
-    def __init__(self):
+
+class Settings(BaseSettings):
         # Database
-        self.DB_URL = os.getenv("DB_URL")
+        DB_URL: str
+
+        DB_HOST: str
+        DB_PORT: int
+        DB_NAME: str
+        DB_USER: str
+        DB_PASS: str
 
         # JWT Authentication
-        self.SECRET_KEY = os.getenv("SECRET_KEY", "test-super-secret-key-1234567890")
-        self.ALGORITHM = os.getenv("ALGORITHM", "HS256")
-        self.ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
+        SECRET_KEY: str
+        ALGORITHM: str = "HS256"
+        ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+        
+        # OTP limits
+        OTP_LENGTH: int = 6
+        OTP_EXPIRE_MINUTES: int = 10
+        OTP_MAX_ATTEMPTS: int = 3
+
+        # Email SMTP
+        SMTP_SERVER: str = "smtp.gmail.com"
+        SMTP_PORT: int = 587
+        SMTP_USERNAME: str
+        SMTP_PASSWORD: str
+        FROM_EMAIL: str = "noreply@yourapp.com"
+
+        SMTP_SENDER: str = "test@authpad.com"
+
+        # Security
+        MAX_LOGIN_ATTEMPTS: int = 5
+        LOCKOUT_TIME_MINUTES: int = 15
+
+
+        model_config = ConfigDict(
+        env_file=".env",
+        case_sensitive=True
+        )
 
 
 

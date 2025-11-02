@@ -1,19 +1,23 @@
-from datetime import timedelta
-from datetime import datetime, timezone
+from datetime import timedelta, datetime, timezone
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, status, Body
 from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import EmailStr
 
 from app.db.connection import get_conn
 from app.core.security import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token
 from app.auth.services.password import hash_password, verify_password
 from app.auth.services.jwt import create_refresh_token, verify_refresh_token
-from app.auth.schemas import RegisterRequest, TokenResponse
+from app.auth.schemas import EmailVerificationRequestResponse, RegisterRequest, TokenResponse, VerifyTokenResponse
 from app.user.schemas import UserOut
-from app.auth.dependencies import get_current_user, oauth2_scheme
+from app.auth.dependencies import get_current_user
+from app.auth.services.otp import EmailService, OTPService
+from app.core.config import settings
 
 
 router = APIRouter()
+otp_service = OTPService()
+
 
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
@@ -24,16 +28,17 @@ async def register_user(
     '''
     Register a new user with email and password.
 
-    Input:
-    - email: must be valid and unique
-    - password: plain text, will be hashed
+    Args:
+        - user (RegisterRequest): must be valid and unique.
+        - conn (asyncpg.Connection): database connection dependency.
 
     Returns:
-    - User data without *sensitive information (id, email, is_verified, created_at)
+        - UserOut: The newly created user object.
 
     Raises:
-    - 400: If email already registered
-    - 500: If registration fails
+        HTTPExeption:
+            - 400: If email already registered.
+            - 500: If registration fails.
     '''
 
     # Check if the email is already registered
@@ -71,21 +76,20 @@ async def token(
     conn: asyncpg.Connection = Depends(get_conn)
     ) -> TokenResponse:
     '''
-    Log in an existing user and return a JWT token.
+    Authenticates an existing user and returns a JWT token pair.
 
-    Input:
-    - Email: Must be registered
-    - Password: Plain text password
+    Args:
+        - form_data (OAuth2PasswordRequestForm): Contains user's email and password.
+            Email must be registered. Password is plain text and will be verified.
+        - Conn (asyncpg.Connection): Database connection dependency.
 
     Returns:
-    - access_token: JWT token for API authentication
-    - refresh_token: Token for obtaining new access tokens
-    - token_type: Always "bearer"
-    - expires_in: Access token expiration in seconds
+        - TokenResponse: Includes access token, refresh token, token type ("bearer"), and expiration time in seconds.
 
     Raises:
-    - 401: If email or password is incorrect
-    - 403: If user email is not verified
+        HTTPExeption:
+            - 401: If email or password is incorrect.
+            - 403: If user email is not verified.
     '''
 
     # Get user from database
@@ -145,20 +149,21 @@ async def refresh_token(
     conn: asyncpg.Connection = Depends(get_conn)
 ) -> TokenResponse:
     '''
-    Refresh expired access token using valid refresh token.
+    Refreshes an expired access token using valid refresh token.
     
-    Input:
-    - refresh_token: Valid refresh token received from /token endpoint
+    Args:
+        - refresh_token (str): The refresh token previously issued from the /token endpoint.
+        - conn (asyncpg.Connection): Database connection dependency.
 
     Returns:
-    - New access token and optional new refresh token
-    - token_type: Always "bearer"
-    - expires_in: Token expiration in seconds
-
+        - TokenResponse: Contains a new access token, optional new refresh token, token type ("bearer"),
+            and expiration time in seconds.
+        
     Raises:
-    - 401: If refresh token is invalid or expired
-    - 404: If user not found
-    - 403: If user email not verified
+        HTTPExeption:
+            - 401: If refresh token is invalid or expired.
+            - 404: If user not found.
+            - 403: If the user's email is not verified.
     '''
 
     try:
@@ -218,24 +223,142 @@ async def refresh_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid refresh token: {str(e)}"
             )
+
+
+
+@router.post("/request-email-verification", response_model=EmailVerificationRequestResponse)
+async def verificate_email_request(
+    email: EmailStr = Body(..., embed=True),
+    conn: asyncpg.Connection = Depends(get_conn)
+    ) -> dict:
+    '''
+    Sends a one-time password (OTP) to the user's email for verification.
+
+    Args:
+        - email (EmailStr): The user's email address. Must be valid and not already verified.
+        - conn (asyncpg.Connection): Database connection dependency.
+
+    Returns:
+        - EmailVerificationRequestResponse: Contains a success message and metadata (e.g. expires_in) about the OTP request.
+
+    Raises:
+        HTTPException:
+            - 400 - If the email format is invalid or already verified.
+            - 500 - If sending the email fails due to server or provider issues.
+    '''
+
+    user_row = await conn.fetchrow(
+        """
+        SELECT id, email, is_verified
+        FROM users
+        WHERE email = $1
+        """,
+        email
+    )
     
+    if not user_row:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Check if already registered
+    if user_row["is_verified"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already verified!"
+        )
+    
+    '''Invalidate previous OTPs for this user and type'''
+    await conn.execute(
+        """
+        UPDATE otp_tokens
+        SET is_used = true 
+        WHERE user_id = $1 AND token_type = $2
+        """,
+        user_row["id"], "email_verification"
+    )
+
+    # Generate new OTP
+    otp = OTPService.generate_otp()
+    token_hash = OTPService.hash_token(otp)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+
+    await conn.execute(
+        """
+        INSERT INTO otp_tokens
+        (user_id, otp_type, token_hash, destination, expires_at)
+        VALUES ($1, $2, $3, $4, $5)
+        """,
+        user_row["id"], "email_verification", token_hash, email, expires_at
+    )
+    
+    # Send email
+    email_service = EmailService()
+    await email_service.send_verification_email(email, otp)
+
+
+    return EmailVerificationRequestResponse(
+        message="Verification code send to your email",
+        expires_in=settings.OTP_EXPIRE_MINUTES
+    )
+
+
+
+@router.post("verify-token", response_model=VerifyTokenResponse)
+async def token_verify(
+    input_token: str,
+    stored_hash: str,
+    otp_length: int = Depends(lambda: settings.OTP_LENGTH)
+    ) -> VerifyTokenResponse:
+    '''
+    Verifies a one-time password (OTP) entered by the user.
+
+    Args:
+        - input_token (str): The OTP entered by the user.
+        - stored_hash (str): The hashed version of the original OTP stored in the database or cache.
+        - otp_length (int): Expected length of the OTP (default from settings).
+
+    Returns:
+        - VerifyTokenResponse: Contains a success flag and a message indicating the result of the verification.
+
+    Raises:
+        HTTPException:
+            - 401: If the token format is invalid or does not match the stored hash.
+    '''
+
+    if not otp_service.verify_input_token(
+        input_token,
+        stored_hash,
+        expected_length=Depends(otp_length)):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token format or mismatch"
+        )
+    
+    return VerifyTokenResponse(
+        success=True,
+        message="Token verified successfully"
+    )
+
 
 
 @router.post("/logout")
 async def logout_user(
+
     current_user: dict = Depends(get_current_user),
     ) -> dict:
     '''
     Logout authenticated user.
 
-    Input:
-    - Requires valid JWT access token
-
+    Args:
+        - current_user (dict): The authenticated user extracted from the JWT access token.
+    
     Returns:
-    - Logout confirmation with timestamp
+        - dict: A confirmation message with a logout timestamp.
     '''
 
     return {
-        "message": "Successfully logged out",
+        "message": f"User {current_user['email']}, logged out successfully",
         "timestamp": datetime.now(timezone.utc).isoformat()
     }

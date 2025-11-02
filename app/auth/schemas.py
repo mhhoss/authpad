@@ -30,3 +30,13 @@ class TokenResponse(BaseModel):
     refresh_token: str | None = None
     token_type: str = "bearer"
     expires_in: int | None = None
+
+
+class EmailVerificationRequestResponse(BaseModel):
+    message: str
+    expires_in: int
+
+
+class VerifyTokenResponse(BaseModel):
+    success: bool
+    message: str
