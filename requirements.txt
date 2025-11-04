@@ -2,6 +2,7 @@ fastapi
 uvicorn
 
 pydentic[email]
+pydantic-settings
 asyncpg
 
 passlib[bcrypt]
@@ -12,3 +13,6 @@ python-multipart
 pytest
 pytest-acyncio
 httpx
+
+jinja2
+aiosmtplib
