@@ -54,3 +54,9 @@ async def check_health() -> bool:
         
     except Exception:
         return False
+    
+
+
+def get_db_url():
+    '''get db URL from sqlalchemy'''
+    return DB_URL
