@@ -1,9 +1,12 @@
 fastapi
-uvicorn
+uvicorn[standard]
 
 pydentic[email]
 pydantic-settings
+
 asyncpg
+sqlalchemy[asyncio]
+alembic
 
 passlib[bcrypt]
 python-jose
@@ -11,8 +14,11 @@ python-dotenv
 python-multipart
 
 pytest
-pytest-acyncio
+pytest-asyncio
 httpx
+
+python-dotenv
 
 jinja2
 aiosmtplib
+txt
