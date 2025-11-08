@@ -3,17 +3,14 @@ from sqlalchemy import DateTime
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
-import uuid
-
-from .base import Base, TimestampMixin
+from .base import Base, IDMixin, TimestampMixin
 
 
 
-class User(TimestampMixin, Base):
+class User(TimestampMixin, IDMixin, Base):
     '''Maps to existing `users` table in database'''
     __tablename__ = "users"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     email = Column(String(255), unique=True, index=True, nullable=False)
     username = Column(String(50), unique=True, index=True)
     password_hash = Column(String(255), nullable=False)
@@ -34,11 +31,10 @@ class User(TimestampMixin, Base):
     )
 
 
-class OTPToken(TimestampMixin, Base):
+class OTPToken(TimestampMixin, IDMixin, Base):
     '''Maps to existing 'otp_tokens' table'''
     __tablename__ = "otp_tokens"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
     otp_type = Column(String(20), nullable=False)
     token_hash = Column(String(255), nullable=False, index=True)
