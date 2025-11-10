@@ -1,3 +1,4 @@
+from typing import Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import DateTime
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
@@ -22,10 +23,17 @@ class User(TimestampMixin, IDMixin, Base):
     locked_until = Column(DateTime(timezone=True))
     email_verified_at = Column(DateTime(timezone=True))
 
-    # Relationships to otp_token table
+    # Relationships
     otp_tokens = relationship(
         "OTPToken",
         back_populates="user", 
+        cascade="all, delete-orphan",
+        lazy="selectin"
+    )
+
+    sessions = relationship(
+        "Session",
+        back_populates="user",
         cascade="all, delete-orphan",
         lazy="selectin"
     )
@@ -46,7 +54,22 @@ class OTPToken(TimestampMixin, IDMixin, Base):
         "User",
         back_populates="otp_tokens"
         )
+    
+
+class Session(TimestampMixin, IDMixin, Base):
+    '''Maps to sessions table for user sessions'''
+    __tablename__ = "sessions"
+
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_agent = Column(Text)
+    ip_address = Column(String(45))  # IPv6 compatible
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    revoked_at = Column(DateTime(timezone=True))
+
+    user = relationship("User", back_populates="sessions")
+
+
 
 
 # Export models
-__all__ = ["User", "OTPToken"]
+__all__ = ["User", "OTPToken", "Session"]
