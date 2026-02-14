@@ -4,8 +4,6 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import Column, DateTime
 from sqlalchemy.sql import func
 
-import uuid
-
 
 class Base(DeclarativeBase):
     '''Base class for all SQLAlchemy models'''

@@ -1,7 +1,6 @@
-from typing import Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import DateTime
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from .base import Base, IDMixin, TimestampMixin
