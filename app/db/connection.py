@@ -1,11 +1,9 @@
-import os
+from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 import asyncpg
-from dotenv import load_dotenv
 
+from app.core.config import settings
 
-load_dotenv()
-DB_URL = os.getenv("DB_URL")
 
 _POOL: asyncpg.Pool | None = None
 
@@ -14,8 +12,10 @@ async def init_pool() -> None:
     '''Creates a connection pool with min/max size configuration'''
     global _POOL
     if _POOL is None:
+        if not settings.DB_URL:
+            raise RuntimeError("DB_URL is not configured")
         _POOL = await asyncpg.create_pool(
-            DB_URL,
+            settings.DB_URL,
             min_size=1,
             max_size=10,
             command_timeout=30
@@ -30,13 +30,12 @@ async def close_pool() -> None:
         _POOL = None
 
 
-
-async def get_conn() -> AsyncGenerator[asyncpg.Connection, None]:
+@asynccontextmanager
+async def conn_ctx() -> AsyncGenerator[asyncpg.Connection, None]:
     '''
-    Get a database connection from the pool
-    
-    Yields:
-        asyncpg.Connection: A database connection from the pool
+    Async context manager for obtaining a DB connection from the global pool.
+
+    Use this outside of FastAPI dependency injection.
     '''
     if _POOL is None:
         await init_pool()
@@ -44,11 +43,18 @@ async def get_conn() -> AsyncGenerator[asyncpg.Connection, None]:
         yield conn
 
 
+async def get_conn() -> AsyncGenerator[asyncpg.Connection, None]:
+    '''
+    Get a database connection from the pool
+    '''
+    async with conn_ctx() as conn:
+        yield conn
+
 
 async def check_health() -> bool:
     '''Check if the database connection is responsive'''
     try:
-        async with get_conn() as conn:
+        async with conn_ctx() as conn:
             test_result = await conn.fetchval("SELECT 1")
             return test_result == 1  # 1 means True
         
@@ -56,7 +62,6 @@ async def check_health() -> bool:
         return False
     
 
-
 def get_db_url():
     '''get db URL from sqlalchemy'''
-    return DB_URL
+    return settings.DB_URL
