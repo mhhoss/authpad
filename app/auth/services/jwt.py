@@ -5,12 +5,12 @@ from app.core.config import settings
 
 def create_refresh_token(
     data: dict,
-    expire_delta: timedelta = None
+    expire_delta: timedelta | None = None
     ) -> str:
     '''Create refresh token with longer expiration (30 days default)'''
 
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + expire_delta or timedelta(days=30)
+    expire = datetime.now(timezone.utc) + (expire_delta or timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS))
 
     to_encode.update({
         "exp": expire,

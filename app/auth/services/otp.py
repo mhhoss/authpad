@@ -1,6 +1,4 @@
 import hashlib
-from fastapi import Depends
-from pydantic import EmailStr
 import secrets
 from aiosmtplib import SMTP
 
@@ -26,7 +24,7 @@ class OTPService:
         This function converts the input token into a hexadecimal hash string,
         allowing safe storage and later comparison without exposing the original token.
 
-        Returns:
+        Responses:
             str: A SHA-256 hexadecimal hash of the input token.
         '''
 
@@ -38,7 +36,7 @@ class OTPService:
     def verify_input_token(
             input_token: str,
             stored_hash: str,
-            expected_length: int = Depends(settings.OTP_LENGTH)
+            expected_length: int = settings.OTP_LENGTH
     ) -> bool:
         '''Validates the format of the input token and compares its hash with the stored hash'''
         
@@ -62,7 +60,7 @@ class EmailService:
 
     async def send_verification_email(
             self,
-            to: EmailStr,
+            to: str,
             otp: str
         ) -> None:
         

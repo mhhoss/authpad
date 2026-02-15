@@ -1,15 +1,18 @@
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 # User registration input validation
 class RegisterRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str = Field(..., min_length=8, max_length=72)
 
     @field_validator("email")
     @classmethod
-    def validate_email(cls, v: EmailStr) -> EmailStr:
-        return v.lower().strip()
+    def validate_email(cls, v: str) -> str:
+        v = v.lower().strip()
+        if "@" not in v or v.startswith("@") or v.endswith("@") or "." not in v.split("@")[-1]:
+            raise ValueError("Invalid email format")
+        return v
 
     @field_validator("password")
     @classmethod
@@ -32,6 +35,13 @@ class TokenResponse(BaseModel):
     expires_in: int | None = None
 
 
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+    model_config = {"extra": "forbid"}
+
+
 class EmailVerificationRequestResponse(BaseModel):
     message: str
     expires_in: int
@@ -40,3 +50,8 @@ class EmailVerificationRequestResponse(BaseModel):
 class VerifyTokenResponse(BaseModel):
     success: bool
     message: str
+
+
+class VerifyEmailRequest(BaseModel):
+    email: str
+    otp: str = Field(..., min_length=1, max_length=32)
