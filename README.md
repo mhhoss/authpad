@@ -1,6 +1,6 @@
 ![Status](https://img.shields.io/badge/Status-In_Progress-F57C00?style=flat-square&logo=todoist&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-2196F3?style=flat-square&logo=open-source-initiative&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3.8+-3776AB?style=flat-square&logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat-square&logo=fastapi)
 
 
@@ -68,7 +68,7 @@
 
 - `POST	/auth/register`	Create new account
 - `POST	/auth/token` Login & get JWT
-- `POST /auth/refersh` Refresh token
+- `POST /auth/refresh` Refresh token
 - `POST	/auth/verify-email`	Verify email with OTP
 - `POST	/auth/request-verification`	Request email verification
 - `POST /auth/logout` Log out current user and invalidate token
@@ -77,36 +77,45 @@
 
 ---
 
-## 🧪 Testing
-
-    ```bash
-
-    # Run all tests
-    pytest
-
-    # Run specific test module
-    pytest tests/auth/test_routes.py -v
-
-
-## 📦 Usage
-Run **Server**:
-
-    ```bash
-    uvicorn app.main:app --reload --port 8000
-
-Run **quickly**:
-
-    ```bash
-    chmod +x setup.sh
-    ./setup.sh
-
-
-## ⚡Installation
+## ✅ Installation
 
 ```bash
 git clone https://github.com/mhhoss/authpad.git
 cd authpad
 
-pip install -r requirements.txt
+python -m venv .venv
+.venv\Scripts\activate
 
-cp .env.example .env
+pip install -r requirements.txt
+```
+
+Create a .env file and set at least:
+- DB_URL (or DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASS)
+- SECRET_KEY (min 32 chars)
+- SMTP_USERNAME, SMTP_PASSWORD (required for email verification)
+
+## 🔬 Testing
+
+```bash
+# run all tests
+pytest -q
+```
+
+## 🤌 Usage
+
+Run the server:
+
+```bash
+uvicorn app.main:app --reload --port 8000
+```
+
+Then open:
+- Swagger UI: http://127.0.0.1:8000/docs
+- ReDoc: http://127.0.0.1:8000/redoc
+
+Quick setup script (Linux/macOS):
+
+```bash
+chmod +x setup.sh
+./setup.sh
+```
